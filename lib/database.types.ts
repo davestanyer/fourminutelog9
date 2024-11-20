@@ -43,22 +43,9 @@ export interface Database {
           completed: boolean
           completed_at: string | null
           time: string | null
-          created_at: string
           client_tag_id: string | null
           project_tag_id: string | null
-          task_client_tags?: {
-            id: string
-            name: string
-            emoji: string
-            color: string
-            tag: string
-          } | null
-          task_project_tags?: {
-            id: string
-            name: string
-            client_name: string
-            tag: string
-          } | null
+          created_at: string
         }
         Insert: {
           id?: string
@@ -67,9 +54,9 @@ export interface Database {
           completed?: boolean
           completed_at?: string | null
           time?: string | null
-          created_at?: string
           client_tag_id?: string | null
           project_tag_id?: string | null
+          created_at?: string
         }
         Update: {
           id?: string
@@ -78,9 +65,9 @@ export interface Database {
           completed?: boolean
           completed_at?: string | null
           time?: string | null
-          created_at?: string
           client_tag_id?: string | null
           project_tag_id?: string | null
+          created_at?: string
         }
       }
       recurring_tasks: {
@@ -95,19 +82,6 @@ export interface Database {
           week_day: number | null
           month_day: number | null
           created_at: string
-          task_client_tags?: {
-            id: string
-            name: string
-            emoji: string
-            color: string
-            tag: string
-          } | null
-          task_project_tags?: {
-            id: string
-            name: string
-            client_name: string
-            tag: string
-          } | null
         }
         Insert: {
           id?: string
