@@ -5,12 +5,7 @@ import { Square, Clock, Tag, Briefcase, Trash2, Pencil, Check, X } from "lucide-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Database } from "@/lib/database.types"
-
-type Task = Database['public']['Tables']['tasks']['Row'] & {
-  task_client_tags?: Database['public']['Views']['task_client_tags']['Row'] | null
-  task_project_tags?: Database['public']['Views']['task_project_tags']['Row'] | null
-}
+import { Task } from "@/lib/types"
 
 interface TaskItemProps {
   task: Task
