@@ -163,19 +163,23 @@ export interface Database {
     }
     Views: {
       task_client_tags: {
-        task_id: string
-        id: string
-        name: string
-        emoji: string
-        color: string
-        tag: string
+        Row: {
+          task_id: string
+          id: string
+          name: string
+          emoji: string
+          color: string
+          tag: string
+        }
       }
       task_project_tags: {
-        task_id: string
-        id: string
-        name: string
-        client_name: string
-        tag: string
+        Row: {
+          task_id: string
+          id: string
+          name: string
+          client_name: string
+          tag: string
+        }
       }
     }
     Functions: {
