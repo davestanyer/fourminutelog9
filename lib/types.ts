@@ -1,24 +1,8 @@
-export interface Task {
-  id: string
-  user_id: string
-  content: string
-  completed: boolean
-  completed_at: string | null
-  time: string | null
-  tags: string[]
-  created_at: string
-}
+import { Database } from './database.types'
 
-export interface RecurringTask {
-  id: string
-  user_id: string
-  title: string
-  time: string | null
-  tags: string[]
-  frequency: 'daily' | 'weekly' | 'monthly'
-  week_day: number | null
-  month_day: number | null
-  created_at: string
+export type Task = Database['public']['Tables']['tasks']['Row'] & {
+  task_client_tags?: Database['public']['Views']['task_client_tags']['Row'] | null
+  task_project_tags?: Database['public']['Views']['task_project_tags']['Row'] | null
 }
 
 export interface TodoTask {
