@@ -10,8 +10,8 @@ import { TagSelector } from "@/components/log/tag-selector"
 import { Database } from "@/lib/database.types"
 
 type Task = Database['public']['Tables']['tasks']['Row'] & {
-  task_client_tags?: Database['public']['Views']['task_client_tags']['Row'] | null
-  task_project_tags?: Database['public']['Views']['task_project_tags']['Row'] | null
+  task_client_tags?: Database['public']['Views']['task_client_tags'] | null
+  task_project_tags?: Database['public']['Views']['task_project_tags'] | null
 }
 
 interface TaskListProps {
