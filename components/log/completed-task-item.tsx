@@ -6,27 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { Database } from "@/lib/database.types"
+
+type Task = Database['public']['Tables']['tasks']['Row'] & {
+  task_client_tags?: Database['public']['Views']['task_client_tags'] | null
+  task_project_tags?: Database['public']['Views']['task_project_tags'] | null
+}
 
 interface CompletedTaskItemProps {
-  task: {
-    id: string
-    content: string
-    time?: string
-    completed_at: string
-    task_client_tags?: {
-      id: string
-      name: string
-      emoji: string
-      color: string
-      tag: string
-    } | null
-    task_project_tags?: {
-      id: string
-      name: string
-      client_name: string
-      tag: string
-    } | null
-  }
+  task: Task
   onUncomplete: () => void
   onUpdate: (updates: { content?: string; time?: string }) => void
   onDelete: () => void
@@ -94,7 +82,7 @@ export function CompletedTaskItem({
               {task.content}
             </span>
             <div className="text-xs text-muted-foreground">
-              Completed at {format(new Date(task.completed_at), 'h:mm a')}
+              {task.completed_at && `Completed at ${format(new Date(task.completed_at), 'h:mm a')}`}
             </div>
           </div>
           
