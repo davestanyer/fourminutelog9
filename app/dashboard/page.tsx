@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Clock, Users, Briefcase, RotateCcw } from "lucide-react";
+import { Header } from "@/components/header";
 
 const items = [
   {
@@ -33,8 +34,7 @@ const items = [
 export default function Dashboard() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-
+      <Header title="Daily activity log" />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <Link key={item.href} href={item.href}>

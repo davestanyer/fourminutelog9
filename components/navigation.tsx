@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { toast } from "sonner";
 
 const navigation = [
-  { name: "Daily Log", href: "/log", icon: Clock },
+  { name: "Daily log", href: "/log", icon: Clock },
   { name: "Clients", href: "/clients", icon: Briefcase },
   { name: "Team", href: "/team", icon: Users },
   { name: "Recurring", href: "/recurring", icon: RotateCcw },
@@ -31,7 +31,7 @@ export function Navigation() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto py-6 sm:px-6 lg:px-8 flex h-14 items-center justify-between">
+      <div className="container mx-auto py-6 px-6 sm:px-0 flex h-14 items-center justify-between">
         <div className="flex items-center">
           <div className="mr-4 hidden md:flex">
             <Link

@@ -8,7 +8,7 @@ export default function MainLayout({
   return (
     <>
       <Navigation />
-      <main className="container mx-auto py-6 sm:px-6 lg:px-8">{children}</main>
+      <main className="container mx-auto py-6 px-6 sm:px-0">{children}</main>
     </>
   );
 }
