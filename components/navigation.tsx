@@ -1,40 +1,43 @@
-"use client"
+"use client";
 
-import { Clock, Users, Briefcase, RotateCcw, Menu, LogOut } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/hooks/use-auth"
-import { toast } from "sonner"
+import { Clock, Users, Briefcase, RotateCcw, Menu, LogOut } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { toast } from "sonner";
 
 const navigation = [
   { name: "Daily Log", href: "/log", icon: Clock },
   { name: "Clients", href: "/clients", icon: Briefcase },
   { name: "Team", href: "/team", icon: Users },
   { name: "Recurring", href: "/recurring", icon: RotateCcw },
-]
+];
 
 export function Navigation() {
-  const pathname = usePathname()
-  const { signOut } = useAuth()
+  const pathname = usePathname();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      await signOut();
     } catch (error) {
-      console.error('Error signing out:', error)
-      toast.error("Failed to sign out")
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
     }
-  }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container mx-auto py-6 sm:px-6 lg:px-8 flex h-14 items-center justify-between">
         <div className="flex items-center">
           <div className="mr-4 hidden md:flex">
-            <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
+            <Link
+              href="/dashboard"
+              className="mr-6 flex items-center space-x-2"
+            >
               <Clock className="h-6 w-6" />
               <span className="hidden font-bold sm:inline-block">
                 Four Minute Log
@@ -100,7 +103,7 @@ export function Navigation() {
             </SheetContent>
           </Sheet>
         </div>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -112,5 +115,5 @@ export function Navigation() {
         </Button>
       </div>
     </header>
-  )
+  );
 }
