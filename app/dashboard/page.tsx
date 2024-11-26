@@ -8,7 +8,7 @@ const items = [
   {
     href: "/log",
     icon: <Clock className="h-8 w-8" />,
-    title: "Daily Log",
+    title: "Daily log",
     description: "Track your daily activities and tasks",
   },
   {
@@ -34,7 +34,7 @@ const items = [
 export default function Dashboard() {
   return (
     <div>
-      <Header title="Daily activity log" />
+      <Header title="Daily activity log" hideBackButton />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <Link key={item.href} href={item.href}>
