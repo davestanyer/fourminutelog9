@@ -14,16 +14,16 @@ interface LogEntryProps {
   tasks: Array<{
     id: string
     content: string
-    time?: string
-    tags?: string[]
-    createdAt?: string
+    time?: string | null
+    tags?: string[] | null
+    createdAt?: string 
   }>
   onUpdate: (tasks: Array<{
     id: string
     content: string
-    time?: string
-    tags?: string[]
-    createdAt: string
+    time?: string | null
+    tags?: string[] | null
+    createdAt?: string
   }>) => void
   isCollapsed?: boolean
 }
@@ -33,15 +33,18 @@ export function LogEntry({ date, tasks, onUpdate, isCollapsed = false }: LogEntr
   const [showTimeSelector, setShowTimeSelector] = useState(false)
   const [showTagSelector, setShowTagSelector] = useState(false)
 
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newTask.trim()) {
       onUpdate([
         ...tasks,
         {
           id: crypto.randomUUID(),
-          content: newTask.trim(),
+          content: newTask.trim(),  
+          time: null,
+          tags:null,
           createdAt: new Date().toISOString()
-        }
+        },
       ])
       setNewTask("")
     }
@@ -107,7 +110,9 @@ export function LogEntry({ date, tasks, onUpdate, isCollapsed = false }: LogEntr
                   ...tasks,
                   {
                     id: crypto.randomUUID(),
-                    content: newTask.trim(),
+                    content: newTask.trim(),  
+                    time: null,
+                    tags:null,
                     createdAt: new Date().toISOString()
                   }
                 ])

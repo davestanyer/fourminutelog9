@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Tag, ChevronLeft, ChevronRight } from "lucide-react"
 import { useTasks } from "@/lib/hooks/use-tasks"
+import { Task } from '@/lib/types'
 
 interface HistoryEntry {
   date: Date
   tasks: Array<{
     id: string
     content: string
-    time?: string
-    tags?: string[]
+    time?: string | null
+    tags?: string[] | null
     completed_at: string
   }>
 }
@@ -22,23 +23,28 @@ interface HistoryEntry {
 export function HistoryView() {
   const [page, setPage] = useState(1)
   const pageSize = 10
-  const { completedTasks, loading } = useTasks()
+  const { tasks, loading } = useTasks()
 
+    // Filter completed tasks
+  const completedTasks = tasks.filter(task => task.completed && task.completed_at)
   // Group tasks by date
-  const groupedTasks = completedTasks.reduce((acc: { [key: string]: HistoryEntry }, task) => {
-    const date = format(new Date(task.completed_at), 'yyyy-MM-dd')
-    
-    if (!acc[date]) {
-      acc[date] = {
-        date: new Date(date),
-        tasks: []
-      }
-    }
-    
-    acc[date].tasks.push(task)
-    return acc
-  }, {})
+  const groupedTasks = completedTasks.reduce((acc: { [key: string]: HistoryEntry }, task: Task) => {
+  const completedDate = task.completed_at || task.created_at || new Date().toISOString();
+  const date = format(new Date(completedDate), 'yyyy-MM-dd');
 
+  if (!acc[date]) {
+    acc[date] = { date: new Date(date), tasks: [] };
+  }
+
+  acc[date].tasks.push({
+    ...task,
+    completed_at: task.completed_at || '', // Ensure completed_at is always a string
+  });
+
+  return acc;
+}, {});
+
+ 
   // Convert to array and sort by date
   const historyEntries = Object.values(groupedTasks)
     .sort((a, b) => b.date.getTime() - a.date.getTime())
