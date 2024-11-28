@@ -24,7 +24,6 @@ export function EditTeamMemberDialog({
   const [name, setName] = useState(member.name)
   const [email, setEmail] = useState(member.email)
   const [role, setRole] = useState(member.role)
-  const [department, setDepartment] = useState(member.department || "")
   const [avatar, setAvatar] = useState(member.avatar || "")
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export function EditTeamMemberDialog({
       setName(member.name)
       setEmail(member.email)
       setRole(member.role)
-      setDepartment(member.department || "")
       setAvatar(member.avatar || "")
     }
   }, [open, member])
@@ -43,7 +41,6 @@ export function EditTeamMemberDialog({
       name,
       email,
       role,
-      department: department || undefined,
       avatar: avatar || undefined,
     })
     onOpenChange(false)
@@ -91,16 +88,6 @@ export function EditTeamMemberDialog({
                 <SelectItem value="member">Member</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="department">Department (optional)</Label>
-            <Input
-              id="department"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              placeholder="Enter department"
-            />
           </div>
 
           <div className="space-y-2">

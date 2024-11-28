@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Task } from "./tasks-view"
+import { Task } from "@/lib/types"
 import { useClients } from "@/lib/hooks/use-clients"
 
 interface EditRecurringTaskDialogProps {
@@ -32,68 +32,52 @@ export function EditRecurringTaskDialog({
   onOpenChange,
   onSubmit,
 }: EditRecurringTaskDialogProps) {
-  const [title, setTitle] = useState(task.title)
+  const [content, setContent] = useState(task.content)
   const [duration, setDuration] = useState(task.time || "")
-  const [frequency, setFrequency] = useState(task.schedule?.frequency || "daily")
-  const [weekDay, setWeekDay] = useState(task.schedule?.weekDay || 1)
-  const [monthDay, setMonthDay] = useState(task.schedule?.monthDay || 1)
-  const [selectedClientId, setSelectedClientId] = useState<string>("")
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("")
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(task.client_tag_id || null)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(task.project_tag_id || null)
 
   const { clients, loading: clientsLoading } = useClients()
 
-  // Find the selected client and project based on task.client and task.project
   useEffect(() => {
-    if (task.client && clients.length > 0) {
-      const client = clients.find(c => c.name === task.client)
-      if (client) {
-        setSelectedClientId(client.id)
-        if (task.project && client.projects) {
-          const project = client.projects.find(p => p.name === task.project)
-          if (project) {
-            setSelectedProjectId(project.id)
-          }
-        }
-      }
+    if (open) {
+      setContent(task.content)
+      setDuration(task.time || "")
+      setSelectedClientId(task.client_tag_id)
+      setSelectedProjectId(task.project_tag_id)
     }
-  }, [task, clients])
+  }, [open, task])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedClient = clients.find(c => c.id === selectedClientId)
-    const selectedProject = selectedClient?.projects?.find(p => p.id === selectedProjectId)
-
     onSubmit({
-      title,
-      time: duration,
-      client: selectedClient?.name,
-      project: selectedProject?.name,
-      schedule: {
-        frequency: frequency as "daily" | "weekly" | "monthly",
-        ...(frequency === "weekly" ? { weekDay } : {}),
-        ...(frequency === "monthly" ? { monthDay } : {})
-      }
+      content,
+      time: duration || null,
+      client_tag_id: selectedClientId,
+      project_tag_id: selectedProjectId
     })
+    onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Recurring Task</DialogTitle>
+          <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="content">Task Content</Label>
             <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter task content"
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label>Duration</Label>
             <Select value={duration} onValueChange={setDuration}>
@@ -112,14 +96,18 @@ export function EditRecurringTaskDialog({
 
           <div className="space-y-2">
             <Label>Client</Label>
-            <Select value={selectedClientId} onValueChange={(value) => {
-              setSelectedClientId(value)
-              setSelectedProjectId("") // Reset project when client changes
-            }}>
+            <Select 
+              value={selectedClientId || ""} 
+              onValueChange={(value) => {
+                setSelectedClientId(value || null)
+                setSelectedProjectId(null)
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">None</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.emoji} {client.name}
@@ -132,11 +120,15 @@ export function EditRecurringTaskDialog({
           {selectedClientId && (
             <div className="space-y-2">
               <Label>Project (Optional)</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <Select 
+                value={selectedProjectId || ""} 
+                onValueChange={(value) => setSelectedProjectId(value || null)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">None</SelectItem>
                   {clients
                     .find(c => c.id === selectedClientId)
                     ?.projects?.map((project) => (
@@ -144,52 +136,6 @@ export function EditRecurringTaskDialog({
                         {project.name}
                       </SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Frequency</Label>
-            <Select value={frequency} onValueChange={(value: any) => setFrequency(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {frequency === "weekly" && (
-            <div className="space-y-2">
-              <Label>Day of Week</Label>
-              <Select value={weekDay.toString()} onValueChange={(value) => setWeekDay(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
-                    <SelectItem key={index} value={index.toString()}>{day}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {frequency === "monthly" && (
-            <div className="space-y-2">
-              <Label>Day of Month</Label>
-              <Select value={monthDay.toString()} onValueChange={(value) => setMonthDay(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>

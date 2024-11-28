@@ -12,24 +12,10 @@ import { CreateTaskDialog } from "@/components/tasks/create-task-dialog"
 import { useRecurringTasks } from "@/lib/hooks/use-recurring-tasks"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { toast } from "sonner"
+import { Task } from "@/lib/types"
 
-export interface Task {
-  id: string
-  title: string
-  time?: string
+interface FormattedTask extends Task {
   type: "recurring" | "one-off"
-  schedule?: {
-    frequency: "daily" | "weekly" | "monthly"
-    weekDay?: number
-    monthDay?: number
-  }
-  startDate?: string
-  createdAt: Date
-  client?: string
-  client_emoji?: string
-  project?: string
-  client_id?: string
-  project_id?: string
 }
 
 export function TasksView() {
@@ -52,22 +38,20 @@ export function TasksView() {
     loading: oneOffLoading
   } = useTasks()
 
-  const handleSubmit = async (task: Omit<Task, "id" | "createdAt">) => {
+  const handleSubmit = async (task: Partial<FormattedTask>) => {
     try {
-      if (task.type === "recurring") {
+      if (activeTab === "recurring" && task.content) {
         await addRecurringTask(
-          task.title,
-          task.schedule!.frequency,
+          task.content,
+          'daily',
           {
-            time: task.time,
-            client_id: task.client_id,
-            project_id: task.project_id,
-            weekDay: task.schedule?.weekDay,
-            monthDay: task.schedule?.monthDay
+            time: task.time || undefined,
+            client_id: task.client_tag_id || undefined,
+            project_id: task.project_tag_id || undefined
           }
         )
-      } else {
-        await addOneOffTask(task.title, task.time)
+      } else if (task.content) {
+        await addOneOffTask(task.content)
       }
       setShowCreateDialog(false)
       toast.success("Task created successfully")
@@ -77,22 +61,21 @@ export function TasksView() {
     }
   }
 
-  const handleUpdate = async (id: string, updates: Partial<Task>) => {
+  const handleUpdate = async (id: string, updates: Partial<FormattedTask>) => {
     try {
-      if (updates.type === "recurring") {
+      if (activeTab === "recurring") {
         await updateRecurringTask(id, {
-          title: updates.title,
-          time: updates.time,
-          client_id: updates.client_id,
-          project_id: updates.project_id,
-          frequency: updates.schedule?.frequency,
-          week_day: updates.schedule?.weekDay,
-          month_day: updates.schedule?.monthDay
+          title: updates.content || undefined,
+          time: updates.time || undefined,
+          client_id: updates.client_tag_id || undefined,
+          project_id: updates.project_tag_id || undefined
         })
       } else {
         await updateOneOffTask(id, {
-          content: updates.title,
-          time: updates.time
+          content: updates.content || undefined,
+          time: updates.time || undefined,
+          client_tag_id: updates.client_tag_id || undefined,
+          project_tag_id: updates.project_tag_id || undefined
         })
       }
       toast.success("Task updated successfully")
@@ -124,30 +107,37 @@ export function TasksView() {
     )
   }
 
-  const formattedRecurringTasks = recurringTasks.map(task => ({
+  const formattedRecurringTasks: FormattedTask[] = recurringTasks.map(task => ({
     id: task.id,
-    title: task.title,
-    time: task.time || undefined,
-    type: "recurring" as const,
-    schedule: {
-      frequency: task.frequency,
-      weekDay: task.week_day || undefined,
-      monthDay: task.month_day || undefined
-    },
-    client: task.clients?.name,
-    client_emoji: task.clients?.emoji,
-    project: task.projects?.name,
-    client_id: task.client_id || undefined,
-    project_id: task.project_id || undefined,
-    createdAt: new Date(task.created_at)
+    user_id: task.user_id,
+    content: task.title,
+    completed: false,
+    completed_at: null,
+    time: task.time || null,
+    client_tag_id: task.client_id || null,
+    project_tag_id: task.project_id || null,
+    created_at: task.created_at,
+    task_client_tags: task.clients ? {
+      task_id: task.id,
+      id: task.clients.id,
+      name: task.clients.name,
+      emoji: task.clients.emoji,
+      color: task.clients.emoji,
+      tag: `client:${task.clients.name}`
+    } : null,
+    task_project_tags: task.projects ? {
+      task_id: task.id,
+      id: task.projects.id,
+      name: task.projects.name,
+      client_name: task.clients?.name || '',
+      tag: `project:${task.clients?.name}/${task.projects.name}`
+    } : null,
+    type: "recurring"
   }))
 
-  const formattedOneOffTasks = oneOffTasks.map(task => ({
-    id: task.id,
-    title: task.content,
-    time: task.time || undefined,
-    type: "one-off" as const,
-    createdAt: new Date(task.created_at)
+  const formattedOneOffTasks: FormattedTask[] = oneOffTasks.map(task => ({
+    ...task,
+    type: "one-off"
   }))
 
   return (
@@ -184,7 +174,7 @@ export function TasksView() {
             <RecurringTasks
               tasks={formattedRecurringTasks}
               onDelete={(id) => handleDelete(id, "recurring")}
-              onUpdate={(id, updates) => handleUpdate(id, { ...updates, type: "recurring" })}
+              onUpdate={(id, updates) => handleUpdate(id, updates)}
             />
           </TabsContent>
 
@@ -192,7 +182,7 @@ export function TasksView() {
             <OneOffTasks
               tasks={formattedOneOffTasks}
               onDelete={(id) => handleDelete(id, "one-off")}
-              onUpdate={(id, updates) => handleUpdate(id, { ...updates, type: "one-off" })}
+              onUpdate={(id, updates) => handleUpdate(id, updates)}
             />
           </TabsContent>
         </Tabs>

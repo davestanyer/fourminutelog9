@@ -4,18 +4,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { toast } from 'sonner'
+import { Database } from '@/lib/database.types'
 
-interface TeamMember {
-  id: string
-  member_id: string
-  role: 'admin' | 'member' | 'viewer'
-  created_at: string
-  user: {
-    email: string
-    name: string
-    avatar_url: string | null
-  }
-}
+type TeamMember = Database['public']['Tables']['team_members']['Row']
 
 export function useTeam() {
   const [members, setMembers] = useState<TeamMember[]>([])
@@ -34,17 +25,31 @@ export function useTeam() {
         const { data, error } = await supabase
           .from('team_members')
           .select(`
-            *,
-            user:member_id (
+            id,
+            team_owner_id,
+            member_id,
+            role,
+            created_at,
+            user:users!team_members_member_id_fkey (
+              id,
               email,
               name,
-              avatar_url
+              avatar_url,
+              created_at,
+              role
             )
           `)
           .eq('team_owner_id', user.id)
 
         if (error) throw error
-        setMembers(data || [])
+
+        // Ensure user property is properly formatted
+        const formattedMembers = (data || []).map(member => ({
+          ...member,
+          user: Array.isArray(member.user) ? member.user[0] : member.user
+        })) as TeamMember[]
+
+        setMembers(formattedMembers)
       } catch (error) {
         console.error('Error fetching team members:', error)
         toast.error('Failed to load team members')
