@@ -1,18 +1,29 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TeamMember } from "./team-view"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TeamMember } from "@/lib/types/team-member";
 
 interface EditTeamMemberDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  member: TeamMember
-  onSubmit: (updates: Partial<TeamMember>) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  member: TeamMember;
+  onSubmit: (updates: Partial<TeamMember>) => void;
 }
 
 export function EditTeamMemberDialog({
@@ -21,33 +32,33 @@ export function EditTeamMemberDialog({
   member,
   onSubmit,
 }: EditTeamMemberDialogProps) {
-  const [name, setName] = useState(member.name)
-  const [email, setEmail] = useState(member.email)
-  const [role, setRole] = useState(member.role)
-  const [department, setDepartment] = useState(member.department || "")
-  const [avatar, setAvatar] = useState(member.avatar || "")
+  const [name, setName] = useState(member.name);
+  const [email, setEmail] = useState(member.email);
+  const [role, setRole] = useState(member.role);
+  const [department, setDepartment] = useState(member.department || "");
+  const [avatar, setAvatar] = useState(member.avatar || "");
 
   useEffect(() => {
     if (open) {
-      setName(member.name)
-      setEmail(member.email)
-      setRole(member.role)
-      setDepartment(member.department || "")
-      setAvatar(member.avatar || "")
+      setName(member.name);
+      setEmail(member.email);
+      setRole(member.role);
+      setDepartment(member.department || "");
+      setAvatar(member.avatar || "");
     }
-  }, [open, member])
+  }, [open, member]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     onSubmit({
       name,
       email,
       role,
       department: department || undefined,
       avatar: avatar || undefined,
-    })
-    onOpenChange(false)
-  }
+    });
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,7 +125,11 @@ export function EditTeamMemberDialog({
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">Save Changes</Button>
@@ -122,5 +137,5 @@ export function EditTeamMemberDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

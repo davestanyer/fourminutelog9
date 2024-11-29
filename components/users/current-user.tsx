@@ -1,42 +1,40 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User } from "./users-view"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "@/lib/types/user";
 
 export function CurrentUser() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     const loadCurrentUser = () => {
-      const storedUsers = localStorage.getItem('users')
-      const currentUserId = localStorage.getItem('currentUserId')
-      
-      if (storedUsers && currentUserId) {
-        const users = JSON.parse(storedUsers)
-        const user = users.find((u: User) => u.id === currentUserId)
-        setCurrentUser(user || null)
-      }
-    }
+      const storedUsers = localStorage.getItem("users");
+      const currentUserId = localStorage.getItem("currentUserId");
 
-    loadCurrentUser()
-    window.addEventListener('storage', loadCurrentUser)
-    
+      if (storedUsers && currentUserId) {
+        const users = JSON.parse(storedUsers);
+        const user = users.find((u: User) => u.id === currentUserId);
+        setCurrentUser(user || null);
+      }
+    };
+
+    loadCurrentUser();
+    window.addEventListener("storage", loadCurrentUser);
+
     return () => {
-      window.removeEventListener('storage', loadCurrentUser)
-    }
-  }, [])
+      window.removeEventListener("storage", loadCurrentUser);
+    };
+  }, []);
 
   if (!currentUser) {
     return (
       <Link href="/users">
-        <Button variant="outline">
-          Select User
-        </Button>
+        <Button variant="outline">Select User</Button>
       </Link>
-    )
+    );
   }
 
   return (
@@ -47,12 +45,16 @@ export function CurrentUser() {
             <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
           ) : (
             <AvatarFallback>
-              {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              {currentUser.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()}
             </AvatarFallback>
           )}
         </Avatar>
         <span>{currentUser.name}</span>
       </Button>
     </Link>
-  )
+  );
 }

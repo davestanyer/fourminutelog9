@@ -1,264 +1,341 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { Database } from '@/lib/database.types'
-import { useAuth } from '@/lib/hooks/use-auth'
-import { toast } from 'sonner'
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { Database } from "@/lib/database.types";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { toast } from "sonner";
+import { endOfDay, isWithinInterval, startOfDay } from "date-fns";
 
-type Task = Database['public']['Tables']['tasks']['Row'] & {
-  task_client_tags?: Database['public']['Views']['task_client_tags']['Row'] | null
-  task_project_tags?: Database['public']['Views']['task_project_tags']['Row'] | null
+export type Task = Database["public"]["Tables"]["tasks"]["Row"] & {
+  task_client_tags?:
+    | Database["public"]["Views"]["task_client_tags"]["Row"]
+    | null;
+  task_project_tags?:
+    | Database["public"]["Views"]["task_project_tags"]["Row"]
+    | null;
+};
+
+function calculateTotalTime(tasks: Task[]): number {
+  return tasks.reduce((total, task) => {
+    if (!task.time) return total;
+
+    const match = task.time.match(/(\d+(?:\.\d+)?)(h|m)/);
+    if (!match) return total;
+
+    const [, value, unit] = match;
+    const numValue = parseFloat(value);
+
+    // Convert to minutes
+    return total + (unit === "h" ? numValue * 60 : numValue);
+  }, 0);
 }
 
-const MAX_RETRIES = 3
-const RETRY_DELAY = 1000 // 1 second
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 export function useTasks(date?: Date) {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const { todoTasks, completedTasks, todoTime, completedTime } = useMemo(() => {
+    const selectedDayStart = startOfDay(date ?? new Date());
+    const selectedDayEnd = endOfDay(date ?? new Date());
+
+    // Filter tasks:
+    // 1. Todo tasks: Show all incomplete tasks regardless of date
+    // 2. Completed tasks: Only show tasks completed on the selected date
+    const todo = tasks.filter((task) => !task.completed);
+    const completed = tasks.filter(
+      (task) =>
+        task.completed &&
+        task.completed_at &&
+        isWithinInterval(new Date(task.completed_at), {
+          start: selectedDayStart,
+          end: selectedDayEnd,
+        })
+    );
+
+    return {
+      todoTasks: todo,
+      completedTasks: completed,
+      todoTime: calculateTotalTime(todo),
+      completedTime: calculateTotalTime(completed),
+    };
+  }, [tasks, date]);
 
   const fetchTasks = async (retryCount = 0) => {
     if (!user) {
-      setTasks([])
-      setLoading(false)
-      return
+      setTasks([]);
+      setLoading(false);
+      return;
     }
 
     try {
       // First get all tasks
       const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (taskError) throw taskError
+      if (taskError) throw taskError;
 
       // Then get client tags for these tasks
       const { data: clientTags, error: clientError } = await supabase
-        .from('task_client_tags')
-        .select('*')
-        .in('task_id', taskData.map(t => t.id))
+        .from("task_client_tags")
+        .select("*")
+        .in(
+          "task_id",
+          taskData.map((t) => t.id)
+        );
 
-      if (clientError) throw clientError
+      if (clientError) throw clientError;
 
       // Then get project tags for these tasks
       const { data: projectTags, error: projectError } = await supabase
-        .from('task_project_tags')
-        .select('*')
-        .in('task_id', taskData.map(t => t.id))
+        .from("task_project_tags")
+        .select("*")
+        .in(
+          "task_id",
+          taskData.map((t) => t.id)
+        );
 
-      if (projectError) throw projectError
+      if (projectError) throw projectError;
 
       // Combine the data
-      const tasksWithTags = taskData.map(task => ({
+      const tasksWithTags = taskData.map((task) => ({
         ...task,
-        task_client_tags: clientTags?.find(ct => ct.task_id === task.id) || null,
-        task_project_tags: projectTags?.find(pt => pt.task_id === task.id) || null
-      }))
+        task_client_tags:
+          clientTags?.find((ct) => ct.task_id === task.id) || null,
+        task_project_tags:
+          projectTags?.find((pt) => pt.task_id === task.id) || null,
+      }));
 
-      setTasks(tasksWithTags)
+      setTasks(tasksWithTags);
     } catch (error: any) {
-      console.error('Error fetching tasks:', error)
-      
+      console.error("Error fetching tasks:", error);
+
       // Retry on network errors
-      if (retryCount < MAX_RETRIES && (
-        error.message?.includes('Failed to fetch') || 
-        error.message?.includes('NetworkError') ||
-        error.code === 'ECONNABORTED'
-      )) {
+      if (
+        retryCount < MAX_RETRIES &&
+        (error.message?.includes("Failed to fetch") ||
+          error.message?.includes("NetworkError") ||
+          error.code === "ECONNABORTED")
+      ) {
         setTimeout(() => {
-          fetchTasks(retryCount + 1)
-        }, RETRY_DELAY * Math.pow(2, retryCount)) // Exponential backoff
-        return
+          fetchTasks(retryCount + 1);
+        }, RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        return;
       }
 
-      toast.error('Failed to load tasks. Please try refreshing the page.')
+      toast.error("Failed to load tasks. Please try refreshing the page.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (user) {
-      fetchTasks()
+      fetchTasks();
 
       const channel = supabase
-        .channel('tasks_changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'tasks',
-            filter: `user_id=eq.${user.id}`
-          }, 
+        .channel("tasks_changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "tasks",
+            filter: `user_id=eq.${user.id}`,
+          },
           () => {
-            fetchTasks()
+            fetchTasks();
           }
         )
-        .subscribe()
+        .subscribe();
 
       return () => {
-        supabase.removeChannel(channel)
-      }
+        supabase.removeChannel(channel);
+      };
     }
-  }, [user, date])
+  }, [user, date]);
 
-  const addTask = async (content: string) => {
+  const addTask = async ({
+    content,
+    completed,
+    completed_at,
+  }: {
+    content: string;
+    completed?: boolean;
+    completed_at?: string | null;
+  }) => {
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new Error("User not authenticated");
     }
 
     try {
       const { data, error } = await supabase
-        .from('tasks')
-        .insert([{
-          user_id: user.id,
-          content,
-          completed: false,
-          client_tag_id: null,
-          project_tag_id: null
-        }])
+        .from("tasks")
+        .insert([
+          {
+            user_id: user.id,
+            content,
+            completed: completed ?? false,
+            completed_at: completed_at ?? null,
+            client_tag_id: null,
+            project_tag_id: null,
+          },
+        ])
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
+      if (error) throw error;
 
-      setTasks(prev => [data, ...prev])
-      return data
+      setTasks((prev) => [data, ...prev]);
+      return data;
     } catch (error) {
-      console.error('Error adding task:', error)
-      toast.error('Failed to add task')
-      throw error
+      console.error("Error adding task:", error);
+      toast.error("Failed to add task");
+      throw error;
     }
-  }
+  };
 
-  const updateTask = async (id: string, updates: {
-    content?: string
-    time?: string
-    completed?: boolean
-    completed_at?: string | null
-    client_tag_id?: string | null
-    project_tag_id?: string | null
-  }) => {
+  const updateTask = async (
+    id: string,
+    updates: {
+      content?: string;
+      time?: string;
+      completed?: boolean;
+      completed_at?: string | null;
+      client_tag_id?: string | null;
+      project_tag_id?: string | null;
+    }
+  ) => {
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new Error("User not authenticated");
     }
 
     try {
       // First verify the task exists and belongs to the user
       const { data: existingTask, error: verifyError } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
+        .from("tasks")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
 
       if (verifyError || !existingTask) {
-        throw new Error('Task not found or access denied')
+        throw new Error("Task not found or access denied");
       }
 
       // If updating tags, ensure project belongs to client
       if (updates.project_tag_id) {
         const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('client_id')
-          .eq('id', updates.project_tag_id)
-          .single()
+          .from("projects")
+          .select("client_id")
+          .eq("id", updates.project_tag_id)
+          .single();
 
         if (projectError || !project) {
-          throw new Error('Invalid project selected')
+          throw new Error("Invalid project selected");
         }
 
         // If client_tag_id is being updated, ensure it matches the project's client
-        if (updates.client_tag_id && updates.client_tag_id !== project.client_id) {
-          throw new Error('Project must belong to the selected client')
+        if (
+          updates.client_tag_id &&
+          updates.client_tag_id !== project.client_id
+        ) {
+          throw new Error("Project must belong to the selected client");
         }
 
         // If client_tag_id is not being updated, use the project's client
         if (!updates.client_tag_id) {
-          updates.client_tag_id = project.client_id
+          updates.client_tag_id = project.client_id;
         }
       }
 
       // If clearing client, also clear project
       if (updates.client_tag_id === null) {
-        updates.project_tag_id = null
+        updates.project_tag_id = null;
       }
 
       // Update the task
       const { data, error } = await supabase
-        .from('tasks')
+        .from("tasks")
         .update(updates)
-        .eq('id', id)
-        .eq('user_id', user.id)
+        .eq("id", id)
+        .eq("user_id", user.id)
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      if (!data) throw new Error('Failed to update task')
+      if (error) throw error;
+      if (!data) throw new Error("Failed to update task");
 
       // Fetch updated tags
       const [{ data: clientTag }, { data: projectTag }] = await Promise.all([
         supabase
-          .from('task_client_tags')
-          .select('*')
-          .eq('task_id', id)
+          .from("task_client_tags")
+          .select("*")
+          .eq("task_id", id)
           .maybeSingle(),
         supabase
-          .from('task_project_tags')
-          .select('*')
-          .eq('task_id', id)
-          .maybeSingle()
-      ])
+          .from("task_project_tags")
+          .select("*")
+          .eq("task_id", id)
+          .maybeSingle(),
+      ]);
 
       const updatedTask = {
         ...data,
         task_client_tags: clientTag || null,
-        task_project_tags: projectTag || null
-      }
+        task_project_tags: projectTag || null,
+      };
 
-      setTasks(prev => prev.map(task => 
-        task.id === id ? updatedTask : task
-      ))
+      setTasks((prev) =>
+        prev.map((task) => (task.id === id ? updatedTask : task))
+      );
 
-      return updatedTask
+      return updatedTask;
     } catch (error: any) {
-      console.error('Error updating task:', error)
-      toast.error(error.message || 'Failed to update task')
-      throw error
+      console.error("Error updating task:", error);
+      toast.error(error.message || "Failed to update task");
+      throw error;
     }
-  }
+  };
 
   const deleteTask = async (id: string) => {
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new Error("User not authenticated");
     }
 
     try {
       const { error } = await supabase
-        .from('tasks')
+        .from("tasks")
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id)
+        .eq("id", id)
+        .eq("user_id", user.id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setTasks(prev => prev.filter(task => task.id !== id))
+      setTasks((prev) => prev.filter((task) => task.id !== id));
     } catch (error: any) {
-      console.error('Error deleting task:', error)
-      toast.error(error.message || 'Failed to delete task')
-      throw error
+      console.error("Error deleting task:", error);
+      toast.error(error.message || "Failed to delete task");
+      throw error;
     }
-  }
+  };
 
   return {
     tasks,
+    todoTasks,
+    completedTasks,
+    todoTime,
+    completedTime,
     loading,
     addTask,
     updateTask,
-    deleteTask
-  }
+    deleteTask,
+  };
 }

@@ -1,68 +1,60 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Check } from "lucide-react"
-import Link from "next/link"
-import { CreateUserDialog } from "@/components/users/create-user-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-
-export interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "user"
-  avatar?: string
-  createdAt: string
-}
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Plus, Check } from "lucide-react";
+import Link from "next/link";
+import { CreateUserDialog } from "@/components/users/create-user-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "@/lib/types/user";
 
 export function UsersView() {
-  const [users, setUsers] = useState<User[]>([])
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string>()
+  const [users, setUsers] = useState<User[]>([]);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>();
 
   useEffect(() => {
-    const storedUsers = localStorage.getItem('users')
-    const storedCurrentUserId = localStorage.getItem('currentUserId')
-    
+    const storedUsers = localStorage.getItem("users");
+    const storedCurrentUserId = localStorage.getItem("currentUserId");
+
     if (storedUsers) {
-      setUsers(JSON.parse(storedUsers))
+      setUsers(JSON.parse(storedUsers));
     }
     if (storedCurrentUserId) {
-      setCurrentUserId(storedCurrentUserId)
+      setCurrentUserId(storedCurrentUserId);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users))
-  }, [users])
+    localStorage.setItem("users", JSON.stringify(users));
+  }, [users]);
 
   useEffect(() => {
     if (currentUserId) {
-      localStorage.setItem('currentUserId', currentUserId)
+      localStorage.setItem("currentUserId", currentUserId);
     }
-  }, [currentUserId])
+  }, [currentUserId]);
 
   const addUser = (userData: Omit<User, "id" | "createdAt">) => {
     const newUser = {
       ...userData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-    }
-    setUsers([...users, newUser])
-    setShowCreateDialog(false)
+    };
+    setUsers([...users, newUser]);
+    setShowCreateDialog(false);
 
     // If this is the first user, set them as current
     if (users.length === 0) {
-      setCurrentUserId(newUser.id)
+      setCurrentUserId(newUser.id);
     }
-  }
+  };
 
   const switchUser = (userId: string) => {
-    setCurrentUserId(userId)
-  }
+    setCurrentUserId(userId);
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -97,13 +89,19 @@ export function UsersView() {
                     <AvatarImage src={user.avatar} alt={user.name} />
                   ) : (
                     <AvatarFallback>
-                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
                 <div>
                   <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">{user.email}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {user.email}
+                  </div>
                 </div>
                 <Badge variant="secondary">{user.role}</Badge>
               </div>
@@ -139,5 +137,5 @@ export function UsersView() {
         onSubmit={addUser}
       />
     </div>
-  )
+  );
 }

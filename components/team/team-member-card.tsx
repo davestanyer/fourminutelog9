@@ -1,23 +1,27 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2 } from "lucide-react"
-import { EditTeamMemberDialog } from "@/components/team/edit-team-member-dialog"
-import { TeamMember } from "./team-view"
-import { format } from "date-fns"
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash2 } from "lucide-react";
+import { EditTeamMemberDialog } from "@/components/team/edit-team-member-dialog";
+import { format } from "date-fns";
+import { TeamMember } from "@/lib/types/team-member";
 
 interface TeamMemberCardProps {
-  member: TeamMember
-  onUpdate: (updates: Partial<TeamMember>) => void
-  onDelete: () => void
+  member: TeamMember;
+  onUpdate: (updates: Partial<TeamMember>) => void;
+  onDelete: () => void;
 }
 
-export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardProps) {
-  const [showEditDialog, setShowEditDialog] = useState(false)
+export function TeamMemberCard({
+  member,
+  onUpdate,
+  onDelete,
+}: TeamMemberCardProps) {
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   return (
     <Card className="p-6">
@@ -29,7 +33,11 @@ export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardPro
                 <AvatarImage src={member.avatar} alt={member.name} />
               ) : (
                 <AvatarFallback>
-                  {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {member.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
                 </AvatarFallback>
               )}
             </Avatar>
@@ -46,11 +54,7 @@ export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardPro
             >
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-            >
+            <Button variant="ghost" size="icon" onClick={onDelete}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -62,7 +66,7 @@ export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardPro
             <Badge variant="outline">{member.department}</Badge>
           )}
           <p className="text-sm text-muted-foreground">
-            Joined {format(new Date(member.joinedAt), 'PP')}
+            Joined {format(new Date(member.joinedAt ?? ""), "PP")}
           </p>
         </div>
       </div>
@@ -74,5 +78,5 @@ export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardPro
         onSubmit={onUpdate}
       />
     </Card>
-  )
+  );
 }

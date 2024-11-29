@@ -1,17 +1,28 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { User } from "./users-view"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { User } from "@/lib/types/user";
 
 interface CreateUserDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSubmit: (user: Omit<User, "id" | "createdAt">) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (user: Omit<User, "id" | "createdAt">) => void;
 }
 
 export function CreateUserDialog({
@@ -19,24 +30,24 @@ export function CreateUserDialog({
   onOpenChange,
   onSubmit,
 }: CreateUserDialogProps) {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [role, setRole] = useState<"admin" | "user">("user")
-  const [avatar, setAvatar] = useState("")
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"admin" | "user">("user");
+  const [avatar, setAvatar] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     onSubmit({
       name,
       email,
       role,
       avatar: avatar || undefined,
-    })
-    setName("")
-    setEmail("")
-    setRole("user")
-    setAvatar("")
-  }
+    });
+    setName("");
+    setEmail("");
+    setRole("user");
+    setAvatar("");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,7 +81,10 @@ export function CreateUserDialog({
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(value: "admin" | "user") => setRole(value)}>
+            <Select
+              value={role}
+              onValueChange={(value: "admin" | "user") => setRole(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -92,7 +106,11 @@ export function CreateUserDialog({
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">Add User</Button>
@@ -100,5 +118,5 @@ export function CreateUserDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

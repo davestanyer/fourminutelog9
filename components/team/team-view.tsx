@@ -1,25 +1,17 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { CreateTeamMemberDialog } from "@/components/team/create-team-member-dialog"
-
-interface TeamMember {
-  id: string
-  name: string
-  role: string
-  email: string
-  avatar?: string
-  status: "active" | "offline" | "busy"
-}
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { CreateTeamMemberDialog } from "@/components/team/create-team-member-dialog";
+import { TeamMember } from "@/lib/types/team-member";
 
 export function TeamView() {
-  const [members, setMembers] = useState<TeamMember[]>([])
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const addMember = (member: Omit<TeamMember, "id">) => {
     setMembers([
@@ -28,9 +20,9 @@ export function TeamView() {
         ...member,
         id: crypto.randomUUID(),
       },
-    ])
-    setShowCreateDialog(false)
-  }
+    ]);
+    setShowCreateDialog(false);
+  };
 
   return (
     <Card className="p-6">
@@ -54,20 +46,29 @@ export function TeamView() {
                   <AvatarImage src={member.avatar} alt={member.name} />
                 ) : (
                   <AvatarFallback>
-                    {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                    {member.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
                   </AvatarFallback>
                 )}
               </Avatar>
               <div>
                 <div className="font-medium">{member.name}</div>
-                <div className="text-sm text-muted-foreground">{member.email}</div>
+                <div className="text-sm text-muted-foreground">
+                  {member.email}
+                </div>
               </div>
               <Badge variant="secondary">{member.role}</Badge>
             </div>
             <Badge
               variant={
-                member.status === "active" ? "default" :
-                member.status === "busy" ? "destructive" : "secondary"
+                member.status === "active"
+                  ? "default"
+                  : member.status === "busy"
+                  ? "destructive"
+                  : "secondary"
               }
             >
               {member.status}
@@ -76,7 +77,7 @@ export function TeamView() {
         ))}
         {members.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            No team members yet. Click "Add Member" to get started.
+            No team members yet. Click &quot;Add Member&quot; to get started.
           </p>
         )}
       </div>
@@ -87,5 +88,5 @@ export function TeamView() {
         onSubmit={addMember}
       />
     </Card>
-  )
+  );
 }

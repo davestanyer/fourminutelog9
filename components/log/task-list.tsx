@@ -1,91 +1,67 @@
-"use client"
+"use client";
 
-import { useState, useCallback } from "react"
-import { Plus, Clock, Tag } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { TaskItem } from "@/components/log/task-item"
-import { TimeSelector } from "@/components/log/time-selector"
-import { TagSelector } from "@/components/log/tag-selector"
-import { Task } from "@/lib/types"
+import { useState, useCallback } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TaskItem } from "@/components/log/task-item";
+import { Task } from "@/lib/types/task";
 
 interface TaskListProps {
-  tasks: Task[]
-  onAdd: (content: string) => void
-  onComplete: (id: string) => void
-  onUpdate: (id: string, updates: { content?: string; time?: string; client_tag_id?: string | null; project_tag_id?: string | null }) => void
-  onDelete: (id: string) => void
+  title: string;
+  tasks: Task[];
+  onAdd: (content: string) => void;
+  onUpdateComplete: (id: string) => void;
+  onUpdate: (
+    id: string,
+    updates: {
+      content?: string;
+      time?: string;
+      client_tag_id?: string | null;
+      project_tag_id?: string | null;
+    }
+  ) => void;
+  onDelete: (id: string) => void;
 }
 
 export function TaskList({
+  title,
   tasks,
   onAdd,
-  onComplete,
+  onUpdateComplete,
   onUpdate,
-  onDelete
+  onDelete,
 }: TaskListProps) {
-  const [newTask, setNewTask] = useState("")
-  const [timeSelector, setTimeSelector] = useState<{ show: boolean; taskId: string | null }>({
-    show: false,
-    taskId: null
-  })
-  const [tagSelector, setTagSelector] = useState<{ show: boolean; taskId: string | null }>({
-    show: false,
-    taskId: null
-  })
+  const [newTask, setNewTask] = useState("");
 
   const handleAddTask = useCallback(() => {
     if (newTask.trim()) {
-      onAdd(newTask.trim())
-      setNewTask("")
+      onAdd(newTask.trim());
+      setNewTask("");
     }
-  }, [newTask, onAdd])
+  }, [newTask, onAdd]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleAddTask()
-    }
-  }, [handleAddTask])
-
-  const handleTimeClick = useCallback((taskId: string | null) => {
-    setTimeSelector({ show: true, taskId })
-  }, [])
-
-  const handleTagClick = useCallback((taskId: string | null) => {
-    setTagSelector({ show: true, taskId })
-  }, [])
-
-  const handleTimeSelect = useCallback((time: string) => {
-    if (timeSelector.taskId) {
-      onUpdate(timeSelector.taskId, { time })
-    }
-    setTimeSelector({ show: false, taskId: null })
-  }, [timeSelector.taskId, onUpdate])
-
-  const handleTagSelect = useCallback((clientId: string | null, projectId: string | null) => {
-    if (tagSelector.taskId) {
-      onUpdate(tagSelector.taskId, {
-        client_tag_id: clientId,
-        project_tag_id: projectId
-      })
-    }
-    setTagSelector({ show: false, taskId: null })
-  }, [tagSelector.taskId, onUpdate])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        handleAddTask();
+      }
+    },
+    [handleAddTask]
+  );
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Tasks To Do</h3>
-      
-      <div className="space-y-2">
+      <h3 className="text-lg font-semibold">{title}</h3>
+
+      <div className="space-y-3">
         {tasks.map((task) => (
           <TaskItem
             key={task.id}
             task={task}
-            onComplete={() => onComplete(task.id)}
+            onUpdateComplete={() => onUpdateComplete(task.id)}
             onUpdate={(updates) => onUpdate(task.id, updates)}
             onDelete={() => onDelete(task.id)}
-            onTimeClick={() => handleTimeClick(task.id)}
-            onTagClick={() => handleTagClick(task.id)}
           />
         ))}
 
@@ -96,33 +72,11 @@ export function TaskList({
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => handleTimeClick(null)}
-          >
-            <Clock className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => handleTagClick(null)}
-          >
-            <Tag className="h-4 w-4" />
-          </Button>
           <Button size="icon" onClick={handleAddTask}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
       </div>
-
-      {timeSelector.show && (
-        <TimeSelector onSelect={handleTimeSelect} />
-      )}
-
-      {tagSelector.show && (
-        <TagSelector onSelect={handleTagSelect} />
-      )}
     </div>
-  )
+  );
 }
