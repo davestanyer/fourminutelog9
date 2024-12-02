@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CreateTeamMemberDialog } from "@/components/team/create-team-member-dialog"
 
-interface TeamMember {
+export interface TeamMember {
   id: string
   name: string
   role: string

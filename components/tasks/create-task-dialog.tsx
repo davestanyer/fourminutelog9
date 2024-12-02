@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Task } from "./tasks-view"
+import { Task } from "@/lib/types"
 import { CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -17,7 +17,7 @@ import { useClients } from "@/lib/hooks/use-clients"
 interface CreateTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (task: Omit<Task, "id" | "createdAt">) => void
+  onSubmit: (task: Partial<Task>) => void
   type: "recurring" | "one-off"
 }
 
@@ -46,27 +46,15 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('Selected client ID:', selectedClientId)
-    console.log('Selected project ID:', selectedProjectId)
-
-    const taskData = {
-      title,
-      type,
-      time: duration || undefined,
-      client_id: selectedClientId || undefined,
-      project_id: selectedProjectId || undefined,
-      ...(type === "recurring" ? {
-        schedule: {
-          frequency,
-          ...(frequency === "weekly" ? { weekDay } : {}),
-          ...(frequency === "monthly" ? { monthDay } : {})
-        }
-      } : {
-        startDate: startDate?.toISOString()
-      })
+    const taskData: Partial<Task> = {
+      content: title,
+      time: duration || null,
+      client_tag_id: selectedClientId || null,
+      project_tag_id: selectedProjectId || null,
+      completed: false,
+      completed_at: null
     }
 
-    console.log('Submitting task data:', taskData)
     onSubmit(taskData)
     resetForm()
   }
@@ -122,7 +110,6 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
             <Select 
               value={selectedClientId} 
               onValueChange={(value) => {
-                console.log('Setting client ID:', value)
                 setSelectedClientId(value)
                 setSelectedProjectId("")
               }}
@@ -145,10 +132,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
               <Label>Project (Optional)</Label>
               <Select 
                 value={selectedProjectId} 
-                onValueChange={(value) => {
-                  console.log('Setting project ID:', value)
-                  setSelectedProjectId(value)
-                }}
+                onValueChange={setSelectedProjectId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select project" />
