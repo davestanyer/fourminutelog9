@@ -6,7 +6,17 @@ import { Database } from '@/lib/database.types'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { toast } from 'sonner'
 
-type RecurringTask = Database['public']['Tables']['recurring_tasks']['Row'] & {
+export interface RecurringTask {
+  id: string
+  user_id: string
+  title: string
+  time: string | null
+  client_id: string | null
+  project_id: string | null
+  frequency: 'daily' | 'weekly' | 'monthly'
+  week_day: number | null
+  month_day: number | null
+  created_at: string
   clients?: {
     id: string
     name: string
@@ -41,7 +51,7 @@ export function useRecurringTasks() {
             name,
             emoji
           ),
-          projects!recurring_tasks_project_id_fkey (
+          projects (
             id,
             name
           )
@@ -50,7 +60,27 @@ export function useRecurringTasks() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setTasks(data || [])
+
+      const formattedTasks: RecurringTask[] = (data || []).map(task => ({
+        id: task.id,
+        user_id: task.user_id,
+        title: task.title,
+        time: task.time,
+        client_id: task.client_id,
+        project_id: task.project_id,
+        frequency: task.frequency,
+        week_day: task.week_day,
+        month_day: task.month_day,
+        created_at: task.created_at,
+        clients: Array.isArray(task.clients) && task.clients.length > 0 
+          ? task.clients[0] 
+          : null,
+        projects: Array.isArray(task.projects) && task.projects.length > 0 
+          ? task.projects[0] 
+          : null
+      }))
+
+      setTasks(formattedTasks)
     } catch (e) {
       const err = e as Error
       setError(err)
@@ -93,11 +123,11 @@ export function useRecurringTasks() {
     title: string,
     frequency: 'daily' | 'weekly' | 'monthly',
     options?: {
-      time?: string
-      client_id?: string
-      project_id?: string
-      weekDay?: number
-      monthDay?: number
+      time?: string | null
+      client_id?: string | null
+      project_id?: string | null
+      weekDay?: number | null
+      monthDay?: number | null
     }
   ) => {
     if (!user) {
@@ -105,7 +135,6 @@ export function useRecurringTasks() {
     }
 
     try {
-      // Create the task data object with all fields
       const taskData = {
         user_id: user.id,
         title,
@@ -117,24 +146,6 @@ export function useRecurringTasks() {
         month_day: options?.monthDay || null
       }
 
-      console.log('Creating task with data:', JSON.stringify(taskData, null, 2))
-
-      // Validate client and project relationship if both are provided
-      if (taskData.client_id && taskData.project_id) {
-        const { data: projectData, error: projectError } = await supabase
-          .from('projects')
-          .select('client_id')
-          .eq('id', taskData.project_id)
-          .single()
-
-        if (projectError) throw projectError
-
-        if (projectData.client_id !== taskData.client_id) {
-          throw new Error('Project does not belong to the selected client')
-        }
-      }
-
-      // Insert the task
       const { data, error } = await supabase
         .from('recurring_tasks')
         .insert([taskData])
@@ -145,68 +156,59 @@ export function useRecurringTasks() {
             name,
             emoji
           ),
-          projects!recurring_tasks_project_id_fkey (
+          projects (
             id,
             name
           )
         `)
         .single()
 
-      if (error) {
-        console.error('Database error:', error)
-        throw error
+      if (error) throw error
+
+      const newTask: RecurringTask = {
+        id: data.id,
+        user_id: data.user_id,
+        title: data.title,
+        time: data.time,
+        client_id: data.client_id,
+        project_id: data.project_id,
+        frequency: data.frequency,
+        week_day: data.week_day,
+        month_day: data.month_day,
+        created_at: data.created_at,
+        clients: Array.isArray(data.clients) && data.clients.length > 0 
+          ? data.clients[0] 
+          : null,
+        projects: Array.isArray(data.projects) && data.projects.length > 0 
+          ? data.projects[0] 
+          : null
       }
 
-      console.log('Task created successfully:', JSON.stringify(data, null, 2))
-      setTasks(prev => [data, ...prev])
-      toast.success('Recurring task created')
-      return data
+      setTasks(prev => [newTask, ...prev])
+      return newTask
     } catch (e) {
-      const err = e as Error
-      console.error('Error adding task:', err)
-      toast.error('Failed to create recurring task')
-      throw err
+      console.error('Error adding task:', e)
+      throw e
     }
   }
 
-  const updateTask = async (id: string, updates: Partial<Omit<RecurringTask, 'id' | 'user_id' | 'created_at'>>) => {
+  const updateTask = async (id: string, updates: {
+    title?: string
+    time?: string | null
+    client_id?: string | null
+    project_id?: string | null
+    frequency?: 'daily' | 'weekly' | 'monthly'
+    week_day?: number | null
+    month_day?: number | null
+  }) => {
     if (!user) {
       throw new Error('User not authenticated')
     }
 
     try {
-      // Create the update data object
-      const updateData = {
-        title: updates.title,
-        time: updates.time || null,
-        client_id: updates.client_id || null,
-        project_id: updates.project_id || null,
-        frequency: updates.frequency,
-        week_day: updates.week_day || null,
-        month_day: updates.month_day || null
-      }
-
-      console.log('Updating task with data:', JSON.stringify(updateData, null, 2))
-
-      // Validate client and project relationship if both are provided
-      if (updateData.client_id && updateData.project_id) {
-        const { data: projectData, error: projectError } = await supabase
-          .from('projects')
-          .select('client_id')
-          .eq('id', updateData.project_id)
-          .single()
-
-        if (projectError) throw projectError
-
-        if (projectData.client_id !== updateData.client_id) {
-          throw new Error('Project does not belong to the selected client')
-        }
-      }
-
-      // Update the task
       const { data, error } = await supabase
         .from('recurring_tasks')
-        .update(updateData)
+        .update(updates)
         .eq('id', id)
         .eq('user_id', user.id)
         .select(`
@@ -216,27 +218,42 @@ export function useRecurringTasks() {
             name,
             emoji
           ),
-          projects!recurring_tasks_project_id_fkey (
+          projects (
             id,
             name
           )
         `)
         .single()
 
-      if (error) {
-        console.error('Database error:', error)
-        throw error
+      if (error) throw error
+
+      const updatedTask: RecurringTask = {
+        id: data.id,
+        user_id: data.user_id,
+        title: data.title,
+        time: data.time,
+        client_id: data.client_id,
+        project_id: data.project_id,
+        frequency: data.frequency,
+        week_day: data.week_day,
+        month_day: data.month_day,
+        created_at: data.created_at,
+        clients: Array.isArray(data.clients) && data.clients.length > 0 
+          ? data.clients[0] 
+          : null,
+        projects: Array.isArray(data.projects) && data.projects.length > 0 
+          ? data.projects[0] 
+          : null
       }
 
-      console.log('Task updated successfully:', JSON.stringify(data, null, 2))
-      setTasks(prev => prev.map(task => task.id === id ? data : task))
-      toast.success('Recurring task updated')
-      return data
+      setTasks(prev => prev.map(task => 
+        task.id === id ? updatedTask : task
+      ))
+
+      return updatedTask
     } catch (e) {
-      const err = e as Error
-      console.error('Error updating task:', err)
-      toast.error('Failed to update recurring task')
-      throw err
+      console.error('Error updating task:', e)
+      throw e
     }
   }
 
@@ -255,12 +272,9 @@ export function useRecurringTasks() {
       if (error) throw error
 
       setTasks(prev => prev.filter(task => task.id !== id))
-      toast.success('Recurring task deleted')
     } catch (e) {
-      const err = e as Error
-      console.error('Error deleting task:', err)
-      toast.error('Failed to delete recurring task')
-      throw err
+      console.error('Error deleting task:', e)
+      throw e
     }
   }
 

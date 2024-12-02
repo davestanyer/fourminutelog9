@@ -55,16 +55,6 @@ export function TeamMemberCard({ member, onUpdate, onDelete }: TeamMemberCardPro
             </Button>
           </div>
         </div>
-
-        <div className="space-y-2">
-          <Badge variant="secondary">{member.role}</Badge>
-          {member.department && (
-            <Badge variant="outline">{member.department}</Badge>
-          )}
-          <p className="text-sm text-muted-foreground">
-            Joined {format(new Date(member.joinedAt), 'PP')}
-          </p>
-        </div>
       </div>
 
       <EditTeamMemberDialog

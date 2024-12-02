@@ -1,20 +1,22 @@
+// components/tasks/recurring-tasks.tsx
 "use client"
 
-import { Task } from "./tasks-view"
+import { Task } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2, Clock, Briefcase } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { EditRecurringTaskDialog } from "./edit-recurring-task-dialog"
 import { useState } from "react"
+import { RecurringTask } from "./recurring-tasks-view"
 
 interface RecurringTasksProps {
-  tasks: Task[]
+  tasks: RecurringTask[]
   onDelete: (id: string) => void
-  onUpdate: (id: string, updates: Partial<Task>) => void
+  onUpdate: (id: string, updates: Partial<RecurringTask>) => void
 }
 
 export function RecurringTasks({ tasks, onDelete, onUpdate }: RecurringTasksProps) {
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editingTask, setEditingTask] = useState<RecurringTask | null>(null)
 
   return (
     <div className="space-y-4">
@@ -27,12 +29,14 @@ export function RecurringTasks({ tasks, onDelete, onUpdate }: RecurringTasksProp
             className="flex items-center justify-between p-4 border rounded-lg"
           >
             <div className="space-y-1 flex-1">
-              <div className="font-medium">{task.title}</div>
+              <div className="font-medium">{task.content}</div>
               <div className="text-sm text-muted-foreground flex items-center gap-2">
                 <span>
                   {task.schedule?.frequency}
-                  {task.schedule?.frequency === "weekly" && ` (${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][task.schedule.weekDay || 0]})`}
-                  {task.schedule?.frequency === "monthly" && ` (Day ${task.schedule.monthDay})`}
+                  {task.schedule?.frequency === "weekly" && 
+                    ` (${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][task.schedule.weekDay || 0]})`}
+                  {task.schedule?.frequency === "monthly" && 
+                    ` (Day ${task.schedule.monthDay})`}
                 </span>
                 {task.time && (
                   <Badge variant="outline" className="gap-1">
@@ -41,13 +45,15 @@ export function RecurringTasks({ tasks, onDelete, onUpdate }: RecurringTasksProp
                   </Badge>
                 )}
               </div>
-              {(task.client || task.project) && (
+              {(task.task_client_tags || task.task_project_tags) && (
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant="secondary" className="gap-1">
                     <Briefcase className="h-3 w-3" />
-                    {task.client_emoji && <span>{task.client_emoji}</span>}
-                    {task.client}
-                    {task.project && ` / ${task.project}`}
+                    {task.task_client_tags?.emoji && 
+                      <span>{task.task_client_tags.emoji}</span>}
+                    {task.task_client_tags?.name}
+                    {task.task_project_tags && 
+                      ` / ${task.task_project_tags.name}`}
                   </Badge>
                 </div>
               )}

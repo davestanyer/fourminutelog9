@@ -1,231 +1,132 @@
 "use client"
 
-import { useState } from "react"
-import { CheckSquare, Square, Clock, Tag, RotateCcw, Pencil, Trash2, Check, X } from "lucide-react"
+import { useState, useCallback } from "react"
+import { Plus, Clock, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { TaskItem } from "@/components/log/task-item"
 import { TimeSelector } from "@/components/log/time-selector"
 import { TagSelector } from "@/components/log/tag-selector"
-import { TodoTask, CompletedTask } from "@/lib/types"
+import { Task } from "@/lib/types"
 
 interface TodoTasksProps {
-  todoTasks: TodoTask[]
-  completedTasks: CompletedTask[]
-  onComplete: (id: string) => void
-  onReverse: (id: string) => void
+  tasks: Task[]
   onAdd: (content: string) => void
-  onEdit: (id: string, content: string) => void
+  onComplete: (id: string) => void
+  onUpdate: (id: string, updates: { 
+    content?: string
+    time?: string | null
+    client_tag_id?: string | null
+    project_tag_id?: string | null 
+  }) => void
   onDelete: (id: string) => void
-  onUpdateTodoTask: (id: string, updates: Partial<TodoTask>) => void
-  onUpdateCompletedTask: (id: string, updates: Partial<CompletedTask>) => void
-  isCollapsed?: boolean
 }
 
 export function TodoTasks({
-  todoTasks,
-  completedTasks,
-  onComplete,
-  onReverse,
+  tasks,
   onAdd,
-  onEdit,
-  onDelete,
-  onUpdateTodoTask,
-  onUpdateCompletedTask,
-  isCollapsed = false
+  onComplete,
+  onUpdate,
+  onDelete
 }: TodoTasksProps) {
   const [newTask, setNewTask] = useState("")
-  const [showTimeSelector, setShowTimeSelector] = useState(false)
-  const [showTagSelector, setShowTagSelector] = useState(false)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [editedContent, setEditedContent] = useState("")
-  const [taskType, setTaskType] = useState<"todo" | "completed">("todo")
+  const [timeSelector, setTimeSelector] = useState<{ show: boolean; taskId: string | null }>({
+    show: false,
+    taskId: null
+  })
+  const [tagSelector, setTagSelector] = useState<{ show: boolean; taskId: string | null }>({
+    show: false,
+    taskId: null
+  })
 
-  const handleEditTask = (taskId: string, newContent: string) => {
-    if (newContent.trim()) {
-      onEdit(taskId, newContent.trim())
-      setEditingTaskId(null)
-      setEditedContent("")
+  const handleAddTask = useCallback(() => {
+    if (newTask.trim()) {
+      onAdd(newTask.trim())
+      setNewTask("")
     }
-  }
+  }, [newTask, onAdd])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleAddTask()
+    }
+  }, [handleAddTask])
+
+  const handleTimeClick = useCallback((taskId: string | null) => {
+    setTimeSelector({ show: true, taskId })
+  }, [])
+
+  const handleTagClick = useCallback((taskId: string | null) => {
+    setTagSelector({ show: true, taskId })
+  }, [])
+
+  const handleTimeSelect = useCallback((time: string | null) => {
+    if (timeSelector.taskId) {
+      onUpdate(timeSelector.taskId, { time })
+    }
+    setTimeSelector({ show: false, taskId: null })
+  }, [timeSelector.taskId, onUpdate])
+
+  const handleTagSelect = useCallback((clientId: string | null, projectId: string | null) => {
+    if (tagSelector.taskId) {
+      onUpdate(tagSelector.taskId, {
+        client_tag_id: clientId,
+        project_tag_id: projectId
+      })
+    }
+    setTagSelector({ show: false, taskId: null })
+  }, [tagSelector.taskId, onUpdate])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Tasks To Do</h3>
-        <div className="space-y-2">
-          {todoTasks.map((task) => (
-            <div key={task.id} className="flex items-center gap-2 group hover:bg-accent rounded-md p-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => onComplete(task.id)}
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-              
-              {editingTaskId === task.id ? (
-                <>
-                  <Input
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="flex-1"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleEditTask(task.id, editedContent)
-                      } else if (e.key === "Escape") {
-                        setEditingTaskId(null)
-                        setEditedContent("")
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleEditTask(task.id, editedContent)}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setEditingTaskId(null)
-                      setEditedContent("")
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1">{task.content}</span>
-                  {task.time && (
-                    <Badge variant="secondary">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {task.time}
-                    </Badge>
-                  )}
-                  {task.tags?.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      <Tag className="h-3 w-3 mr-1" />
-                      {tag}
-                    </Badge>
-                  ))}
-                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => {
-                        setSelectedTaskId(task.id)
-                        setTaskType("todo")
-                        setShowTimeSelector(true)
-                      }}
-                    >
-                      <Clock className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => {
-                        setSelectedTaskId(task.id)
-                        setTaskType("todo")
-                        setShowTagSelector(true)
-                      }}
-                    >
-                      <Tag className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => {
-                        setEditingTaskId(task.id)
-                        setEditedContent(task.content)
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => onDelete(task.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-          {!isCollapsed && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add a new task (press Enter to save)"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newTask.trim()) {
-                    onAdd(newTask.trim())
-                    setNewTask("")
-                  }
-                }}
-              />
-            </div>
-          )}
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Tasks To Do</h3>
+      
+      <div className="space-y-2">
+        {tasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            onComplete={() => onComplete(task.id)}
+            onUpdate={(updates) => onUpdate(task.id, updates)}
+            onDelete={() => onDelete(task.id)}
+            onTimeClick={() => handleTimeClick(task.id)}
+            onTagClick={() => handleTagClick(task.id)}
+          />
+        ))}
+
+        <div className="flex gap-2">
+          <Input
+            placeholder="Add a new task (press Enter to save)"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => handleTimeClick(null)}
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => handleTagClick(null)}
+          >
+            <Tag className="h-4 w-4" />
+          </Button>
+          <Button size="icon" onClick={handleAddTask}>
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {showTimeSelector && selectedTaskId && (
-        <div className="relative">
-          <div className="absolute top-0 right-0 z-50">
-            <TimeSelector
-              onSelect={(time) => {
-                if (taskType === "todo") {
-                  onUpdateTodoTask(selectedTaskId, { time })
-                } else {
-                  onUpdateCompletedTask(selectedTaskId, { time })
-                }
-                setShowTimeSelector(false)
-                setSelectedTaskId(null)
-              }}
-            />
-          </div>
-        </div>
+      {timeSelector.show && (
+        <TimeSelector onSelect={handleTimeSelect} />
       )}
 
-      {showTagSelector && selectedTaskId && (
-        <div className="relative">
-          <div className="absolute top-0 right-0 z-50">
-            <TagSelector
-              onSelect={(tag) => {
-                if (taskType === "todo") {
-                  const task = todoTasks.find(t => t.id === selectedTaskId)
-                  const currentTags = task?.tags || []
-                  if (!currentTags.includes(tag)) {
-                    onUpdateTodoTask(selectedTaskId, { tags: [...currentTags, tag] })
-                  }
-                } else {
-                  const task = completedTasks.find(t => t.id === selectedTaskId)
-                  const currentTags = task?.tags || []
-                  if (!currentTags.includes(tag)) {
-                    onUpdateCompletedTask(selectedTaskId, { tags: [...currentTags, tag] })
-                  }
-                }
-                setShowTagSelector(false)
-                setSelectedTaskId(null)
-              }}
-            />
-          </div>
-        </div>
+      {tagSelector.show && (
+        <TagSelector onSelect={handleTagSelect} />
       )}
     </div>
   )
