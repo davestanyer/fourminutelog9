@@ -17,21 +17,14 @@ export interface RecurringTask {
   week_day: number | null
   month_day: number | null
   created_at: string
-  clients?: {
-    id: string
-    name: string
-    emoji: string
-  } | null
-  projects?: {
-    id: string
-    name: string
-  } | null
+  client_name?: string | null
+  client_emoji?: string | null
+  project_name?: string | null
 }
 
 export function useRecurringTasks() {
   const [tasks, setTasks] = useState<RecurringTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
   const { user } = useAuth()
 
   const fetchTasks = async () => {
@@ -43,49 +36,16 @@ export function useRecurringTasks() {
 
     try {
       const { data, error } = await supabase
-        .from('recurring_tasks')
-        .select(`
-          *,
-          clients (
-            id,
-            name,
-            emoji
-          ),
-          projects (
-            id,
-            name
-          )
-        `)
+        .from('recurring_tasks_with_relations')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-
-      const formattedTasks: RecurringTask[] = (data || []).map(task => ({
-        id: task.id,
-        user_id: task.user_id,
-        title: task.title,
-        time: task.time,
-        client_id: task.client_id,
-        project_id: task.project_id,
-        frequency: task.frequency,
-        week_day: task.week_day,
-        month_day: task.month_day,
-        created_at: task.created_at,
-        clients: Array.isArray(task.clients) && task.clients.length > 0 
-          ? task.clients[0] 
-          : null,
-        projects: Array.isArray(task.projects) && task.projects.length > 0 
-          ? task.projects[0] 
-          : null
-      }))
-
-      setTasks(formattedTasks)
-    } catch (e) {
-      const err = e as Error
-      setError(err)
-      console.error('Error fetching tasks:', err)
-      toast.error('Failed to load recurring tasks')
+      setTasks(data || [])
+    } catch (error: any) {
+      console.error('Error fetching tasks:', error)
+      toast.error(error.message || 'Failed to load recurring tasks')
     } finally {
       setLoading(false)
     }
@@ -135,63 +95,46 @@ export function useRecurringTasks() {
     }
 
     try {
+      if (!title.trim()) {
+        throw new Error('Task title is required')
+      }
+
       const taskData = {
         user_id: user.id,
-        title,
+        title: title.trim(),
         frequency,
         time: options?.time || null,
         client_id: options?.client_id || null,
         project_id: options?.project_id || null,
-        week_day: options?.weekDay || null,
-        month_day: options?.monthDay || null
+        week_day: frequency === 'weekly' ? options?.weekDay : null,
+        month_day: frequency === 'monthly' ? options?.monthDay : null
       }
 
       const { data, error } = await supabase
         .from('recurring_tasks')
         .insert([taskData])
-        .select(`
-          *,
-          clients (
-            id,
-            name,
-            emoji
-          ),
-          projects (
-            id,
-            name
-          )
-        `)
+        .select()
         .single()
 
       if (error) throw error
 
-      const newTask: RecurringTask = {
-        id: data.id,
-        user_id: data.user_id,
-        title: data.title,
-        time: data.time,
-        client_id: data.client_id,
-        project_id: data.project_id,
-        frequency: data.frequency,
-        week_day: data.week_day,
-        month_day: data.month_day,
-        created_at: data.created_at,
-        clients: Array.isArray(data.clients) && data.clients.length > 0 
-          ? data.clients[0] 
-          : null,
-        projects: Array.isArray(data.projects) && data.projects.length > 0 
-          ? data.projects[0] 
-          : null
-      }
+      // Fetch the complete task with relations
+      const { data: taskWithRelations, error: relationsError } = await supabase
+        .from('recurring_tasks_with_relations')
+        .select('*')
+        .eq('id', data.id)
+        .single()
 
-      setTasks(prev => [newTask, ...prev])
-      return newTask
-    } catch (e) {
-      console.error('Error adding task:', e)
-      throw e
+      if (relationsError) throw relationsError
+
+      setTasks(prev => [taskWithRelations, ...prev])
+      return taskWithRelations
+    } catch (error: any) {
+      console.error('Error adding task:', error)
+      throw error
     }
   }
-
+  
   const updateTask = async (id: string, updates: {
     title?: string
     time?: string | null
@@ -204,56 +147,56 @@ export function useRecurringTasks() {
     if (!user) {
       throw new Error('User not authenticated')
     }
-
+    
     try {
-      const { data, error } = await supabase
+      console.log("Starting updateTask with:", { id, updates });
+      if (updates.title && !updates.title.trim()) {
+        throw new Error('Task title cannot be empty')
+      }
+
+      // Validate frequency-specific fields
+      if (updates.frequency === 'weekly' && updates.week_day === undefined) {
+        throw new Error('Day of week is required for weekly tasks')
+      }
+      if (updates.frequency === 'monthly' && updates.month_day === undefined) {
+        throw new Error('Day of month is required for monthly tasks')
+      }
+
+      // Clear week_day if not weekly
+      if (updates.frequency && updates.frequency !== 'weekly') {
+        updates.week_day = null
+      }
+
+      // Clear month_day if not monthly
+      if (updates.frequency && updates.frequency !== 'monthly') {
+        updates.month_day = null
+      }
+
+      const { error } = await supabase
         .from('recurring_tasks')
         .update(updates)
         .eq('id', id)
         .eq('user_id', user.id)
-        .select(`
-          *,
-          clients (
-            id,
-            name,
-            emoji
-          ),
-          projects (
-            id,
-            name
-          )
-        `)
-        .single()
 
       if (error) throw error
-
-      const updatedTask: RecurringTask = {
-        id: data.id,
-        user_id: data.user_id,
-        title: data.title,
-        time: data.time,
-        client_id: data.client_id,
-        project_id: data.project_id,
-        frequency: data.frequency,
-        week_day: data.week_day,
-        month_day: data.month_day,
-        created_at: data.created_at,
-        clients: Array.isArray(data.clients) && data.clients.length > 0 
-          ? data.clients[0] 
-          : null,
-        projects: Array.isArray(data.projects) && data.projects.length > 0 
-          ? data.projects[0] 
-          : null
-      }
+     //if (error) console.error("Supabase update error:", error);
+      // Fetch updated task with relations
+      const { data: updatedTask, error: fetchError } = await supabase
+        .from('recurring_tasks_with_relations')
+        .select('*')
+        .eq('id', id)
+        .single()
+       
+      if (fetchError) throw fetchError
 
       setTasks(prev => prev.map(task => 
         task.id === id ? updatedTask : task
       ))
 
       return updatedTask
-    } catch (e) {
-      console.error('Error updating task:', e)
-      throw e
+    } catch (error: any) {
+      console.error('Error updating task:', error)
+      throw error
     }
   }
 
@@ -272,16 +215,15 @@ export function useRecurringTasks() {
       if (error) throw error
 
       setTasks(prev => prev.filter(task => task.id !== id))
-    } catch (e) {
-      console.error('Error deleting task:', e)
-      throw e
+    } catch (error: any) {
+      console.error('Error deleting task:', error)
+      throw error
     }
   }
 
   return {
     tasks,
     loading,
-    error,
     addTask,
     updateTask,
     deleteTask

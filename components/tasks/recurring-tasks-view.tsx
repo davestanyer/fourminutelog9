@@ -1,4 +1,3 @@
-// components/tasks/recurring-tasks-view.tsx
 "use client"
 
 import { useState } from "react"
@@ -7,107 +6,59 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { CreateTaskDialog } from "@/components/tasks/create-task-dialog"
 import { RecurringTasks } from "@/components/tasks/recurring-tasks"
-import { Task } from "@/lib/types"
 import { useRecurringTasks } from "@/lib/hooks/use-recurring-tasks"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { toast } from "sonner"
-
-export interface RecurringTask extends Task {
-  schedule?: {
-    frequency: 'daily' | 'weekly' | 'monthly'
-    weekDay?: number
-    monthDay?: number
-  }
-}
+import { RecurringTaskInput, RecurringTaskUpdate } from "@/lib/types/recurring-tasks"
 
 export function RecurringTasksView() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const { tasks, loading, addTask, updateTask, deleteTask } = useRecurringTasks()
   const { user } = useAuth()
 
-  const formattedTasks: RecurringTask[] = tasks.map(task => ({
-    id: task.id,
-    user_id: task.user_id,
-    content: task.title,
-    completed: false,
-    completed_at: null,
-    time: task.time,
-    client_tag_id: task.client_id,
-    project_tag_id: task.project_id,
-    created_at: task.created_at,
-    task_client_tags: task.clients ? {
-      task_id: task.id,
-      id: task.clients.id,
-      name: task.clients.name,
-      emoji: task.clients.emoji,
-      color: task.clients.emoji, // Using emoji as color since color isn't available
-      tag: `client:${task.clients.name}`
-    } : null,
-    task_project_tags: task.projects ? {
-      task_id: task.id,
-      id: task.projects.id,
-      name: task.projects.name,
-      client_name: task.clients?.name || '',
-      tag: `project:${task.clients?.name || ''}/${task.projects.name}`
-    } : null,
-    schedule: {
-      frequency: task.frequency,
-      weekDay: task.week_day || undefined,
-      monthDay: task.month_day || undefined
-    }
-  }))
-
-  const handleAddTask = async (task: Partial<RecurringTask>) => {
+  const handleAddTask = async (taskInput: RecurringTaskInput) => {
     try {
       if (!user) {
         toast.error("Please sign in to create tasks")
         return
       }
 
-      if (!task.content || !task.schedule?.frequency) {
+      if (!taskInput.title || !taskInput.schedule?.frequency) {
         toast.error("Task title and frequency are required")
         return
       }
 
       await addTask(
-        task.content,
-        task.schedule.frequency,
+        taskInput.title,
+        taskInput.schedule.frequency,
         {
-          time: task.time || undefined,
-          client_id: task.client_tag_id || undefined,
-          project_id: task.project_tag_id || undefined,
-          weekDay: task.schedule.weekDay,
-          monthDay: task.schedule.monthDay
+          time: taskInput.time,
+          client_id: taskInput.client_id,
+          project_id: taskInput.project_id,
+          weekDay: taskInput.schedule.weekDay,
+          monthDay: taskInput.schedule.monthDay
         }
       )
       setShowCreateDialog(false)
       toast.success("Task created successfully")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating task:", error)
-      toast.error("Failed to create task")
+      toast.error(error.message || "Failed to create task")
     }
   }
 
-  const handleUpdateTask = async (id: string, updates: Partial<RecurringTask>) => {
+  const handleUpdateTask = async (id: string, updates: RecurringTaskUpdate) => {
     try {
       if (!user) {
         toast.error("Please sign in to update tasks")
         return
       }
 
-      await updateTask(id, {
-        title: updates.content,
-        time: updates.time || null,
-        client_id: updates.client_tag_id || null,
-        project_id: updates.project_tag_id || null,
-        frequency: updates.schedule?.frequency,
-        week_day: updates.schedule?.weekDay || null,
-        month_day: updates.schedule?.monthDay || null
-      })
+      await updateTask(id, updates)
       toast.success("Task updated successfully")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating task:", error)
-      toast.error("Failed to update task")
+      toast.error(error.message || "Failed to update task")
     }
   }
 
@@ -120,9 +71,9 @@ export function RecurringTasksView() {
 
       await deleteTask(id)
       toast.success("Task deleted successfully")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting task:", error)
-      toast.error("Failed to delete task")
+      toast.error(error.message || "Failed to delete task")
     }
   }
 
@@ -155,7 +106,7 @@ export function RecurringTasksView() {
       </div>
 
       <RecurringTasks
-        tasks={formattedTasks}
+        tasks={tasks}
         onDelete={handleDeleteTask}
         onUpdate={handleUpdateTask}
       />

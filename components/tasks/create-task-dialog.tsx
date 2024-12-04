@@ -2,77 +2,78 @@
 
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Task } from "@/lib/types"
-import { CalendarIcon } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 import { useClients } from "@/lib/hooks/use-clients"
+import { RecurringTaskInput } from "@/lib/types/recurring-tasks"
+import { DURATIONS, FREQUENCIES, WEEKDAYS } from "@/lib/constants/recurring-tasks"
+import { validateSchedule } from "@/lib/utils/recurring-tasks"
 
 interface CreateTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (task: Partial<Task>) => void
+  onSubmit: (task: RecurringTaskInput) => void
   type: "recurring" | "one-off"
 }
 
-const DURATIONS = [
-  { value: "15m", label: "15 minutes" },
-  { value: "30m", label: "30 minutes" },
-  { value: "1h", label: "1 hour" },
-  { value: "2h", label: "2 hours" },
-  { value: "3h", label: "3 hours" },
-  { value: "4h", label: "4 hours" },
-  { value: "8h", label: "8 hours" },
-]
-
-export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateTaskDialogProps) {
+export function CreateTaskDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  type
+}: CreateTaskDialogProps) {
   const [title, setTitle] = useState("")
-  const [duration, setDuration] = useState("")
+  const [time, setTime] = useState("")
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">("daily")
-  const [weekDay, setWeekDay] = useState<number>(1)
-  const [monthDay, setMonthDay] = useState<number>(1)
-  const [startDate, setStartDate] = useState<Date>()
+  const [weekDay, setWeekDay] = useState("1")
+  const [monthDay, setMonthDay] = useState("1")
   const [selectedClientId, setSelectedClientId] = useState<string>("")
   const [selectedProjectId, setSelectedProjectId] = useState<string>("")
 
-  const { clients, loading: clientsLoading } = useClients()
+  const { clients } = useClients()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    const taskData: Partial<Task> = {
-      content: title,
-      time: duration || null,
-      client_tag_id: selectedClientId || null,
-      project_tag_id: selectedProjectId || null,
-      completed: false,
-      completed_at: null
+
+    if (!validateSchedule(
+      frequency,
+      frequency === "weekly" ? parseInt(weekDay) : undefined,
+      frequency === "monthly" ? parseInt(monthDay) : undefined
+    )) {
+      return
     }
 
-    onSubmit(taskData)
+    const task: RecurringTaskInput = {
+      title,
+      time: time || null,
+      client_id: selectedClientId || null,
+      project_id: selectedProjectId || null,
+      schedule: {
+        frequency,
+        weekDay: frequency === "weekly" ? parseInt(weekDay) : undefined,
+        monthDay: frequency === "monthly" ? parseInt(monthDay) : undefined
+      }
+    }
+
+    onSubmit(task)
     resetForm()
   }
 
   const resetForm = () => {
     setTitle("")
-    setDuration("")
+    setTime("")
     setFrequency("daily")
-    setWeekDay(1)
-    setMonthDay(1)
-    setStartDate(undefined)
+    setWeekDay("1")
+    setMonthDay("1")
     setSelectedClientId("")
     setSelectedProjectId("")
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             Create {type === "recurring" ? "Recurring" : "One-off"} Task
@@ -91,7 +92,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
           
           <div className="space-y-2">
             <Label>Duration</Label>
-            <Select value={duration} onValueChange={setDuration}>
+            <Select value={time} onValueChange={setTime}>
               <SelectTrigger>
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
@@ -150,7 +151,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
             </div>
           )}
 
-          {type === "recurring" ? (
+          {type === "recurring" && (
             <>
               <div className="space-y-2">
                 <Label>Frequency</Label>
@@ -159,9 +160,11 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    {FREQUENCIES.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -169,14 +172,14 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
               {frequency === "weekly" && (
                 <div className="space-y-2">
                   <Label>Day of Week</Label>
-                  <Select value={weekDay.toString()} onValueChange={(value) => setWeekDay(parseInt(value))}>
+                  <Select value={weekDay} onValueChange={setWeekDay}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {day}
+                      {WEEKDAYS.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -187,7 +190,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
               {frequency === "monthly" && (
                 <div className="space-y-2">
                   <Label>Day of Month</Label>
-                  <Select value={monthDay.toString()} onValueChange={(value) => setMonthDay(parseInt(value))}>
+                  <Select value={monthDay} onValueChange={setMonthDay}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -202,32 +205,6 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, type }: CreateT
                 </div>
               )}
             </>
-          ) : (
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
           )}
 
           <div className="flex justify-end gap-2">
