@@ -21,6 +21,18 @@ export function RecurringTasks({
 }: RecurringTasksProps) {
   const [editingTask, setEditingTask] = useState<RecurringTask | null>(null)
 
+  // Ensure task has required properties before opening edit dialog
+  const handleEditTask = (task: RecurringTask) => {
+    // Create a normalized version of the task with guaranteed non-undefined properties
+    const normalizedTask: RecurringTask = {
+      ...task,
+      client_name: task.client_name ?? null,
+      client_emoji: task.client_emoji ?? null,
+      project_name: task.project_name ?? null
+    }
+    setEditingTask(normalizedTask)
+  }
+
   return (
     <div className="space-y-4">
       {tasks.length === 0 ? (
@@ -59,7 +71,7 @@ export function RecurringTasks({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setEditingTask(task)}
+                onClick={() => handleEditTask(task)}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
