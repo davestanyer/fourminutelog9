@@ -12,10 +12,20 @@ import { CreateTaskDialog } from "@/components/tasks/create-task-dialog"
 import { useRecurringTasks } from "@/lib/hooks/use-recurring-tasks"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { toast } from "sonner"
-import { Task } from "@/lib/types"
+import { Task, TaskClientTag, TaskProjectTag } from "@/lib/types"
+import { RecurringTask } from "@/lib/types/recurring-tasks"
 
 interface FormattedTask extends Task {
   type: "recurring" | "one-off"
+}
+
+interface FormattedRecurringTask extends FormattedTask {
+  title: string
+  client_id: string | null
+  project_id: string | null
+  frequency: 'daily' | 'weekly' | 'monthly'
+  week_day: number | null
+  month_day: number | null
 }
 
 export function TasksView() {
@@ -107,33 +117,42 @@ export function TasksView() {
     )
   }
 
-  const formattedRecurringTasks: FormattedTask[] = recurringTasks.map(task => ({
-    id: task.id,
-    user_id: task.user_id,
-    content: task.title,
-    completed: false,
-    completed_at: null,
-    time: task.time || null,
-    client_tag_id: task.client_id || null,
-    project_tag_id: task.project_id || null,
-    created_at: task.created_at,
-    task_client_tags: task.clients ? {
-      task_id: task.id,
-      id: task.clients.id,
-      name: task.clients.name,
-      emoji: task.clients.emoji,
-      color: task.clients.emoji,
-      tag: `client:${task.clients.name}`
-    } : null,
-    task_project_tags: task.projects ? {
-      task_id: task.id,
-      id: task.projects.id,
-      name: task.projects.name,
-      client_name: task.clients?.name || '',
-      tag: `project:${task.clients?.name}/${task.projects.name}`
-    } : null,
-    type: "recurring"
-  }))
+  const formattedRecurringTasks: FormattedTask[] = recurringTasks.map(task => {
+    const formattedTask: FormattedRecurringTask = {
+      id: task.id,
+      user_id: task.user_id,
+      content: task.title,
+      completed: false,
+      completed_at: null,
+      time: task.time,
+      client_tag_id: task.client_id,
+      project_tag_id: task.project_id,
+      created_at: task.created_at,
+      title: task.title,
+      client_id: task.client_id,
+      project_id: task.project_id,
+      frequency: task.frequency,
+      week_day: task.week_day,
+      month_day: task.month_day,
+      type: "recurring",
+      task_client_tags: task.client_name ? {
+        task_id: task.id,
+        id: task.client_id || '',
+        name: task.client_name,
+        emoji: task.client_emoji || '',
+        color: task.client_emoji || '',
+        tag: `client:${task.client_name}`
+      } : null,
+      task_project_tags: task.project_name ? {
+        task_id: task.id,
+        id: task.project_id || '',
+        name: task.project_name,
+        client_name: task.client_name || '',
+        tag: `project:${task.client_name}/${task.project_name}`
+      } : null
+    }
+    return formattedTask
+  })
 
   const formattedOneOffTasks: FormattedTask[] = oneOffTasks.map(task => ({
     ...task,
