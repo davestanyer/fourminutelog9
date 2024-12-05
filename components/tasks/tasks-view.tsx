@@ -12,20 +12,22 @@ import { CreateTaskDialog } from "@/components/tasks/create-task-dialog"
 import { useRecurringTasks } from "@/lib/hooks/use-recurring-tasks"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { toast } from "sonner"
-import { Task, TaskClientTag, TaskProjectTag } from "@/lib/types"
-import { RecurringTask } from "@/lib/types/recurring-tasks"
+import { Task } from "@/lib/types"
+import { RecurringTask, RecurringTaskUpdate } from "@/lib/types/recurring-tasks"
 
 interface FormattedTask extends Task {
   type: "recurring" | "one-off"
 }
 
-interface FormattedRecurringTask extends FormattedTask {
-  title: string
-  client_id: string | null
-  project_id: string | null
-  frequency: 'daily' | 'weekly' | 'monthly'
-  week_day: number | null
-  month_day: number | null
+interface FormattedRecurringTask extends RecurringTask {
+  type: "recurring"
+  content: string
+  completed: boolean
+  completed_at: string | null
+  client_tag_id: string | null
+  project_tag_id: string | null
+  task_client_tags: Task['task_client_tags']
+  task_project_tags: Task['task_project_tags']
 }
 
 export function TasksView() {
@@ -74,15 +76,16 @@ export function TasksView() {
   const handleUpdate = async (id: string, updates: Partial<FormattedTask>) => {
     try {
       if (activeTab === "recurring") {
-        await updateRecurringTask(id, {
-          title: updates.content || undefined,
+        const recurringUpdates: RecurringTaskUpdate = {
+          title: updates.content,
           time: updates.time || undefined,
           client_id: updates.client_tag_id || undefined,
           project_id: updates.project_tag_id || undefined
-        })
+        }
+        await updateRecurringTask(id, recurringUpdates)
       } else {
         await updateOneOffTask(id, {
-          content: updates.content || undefined,
+          content: updates.content,
           time: updates.time || undefined,
           client_tag_id: updates.client_tag_id || undefined,
           project_tag_id: updates.project_tag_id || undefined
@@ -117,42 +120,30 @@ export function TasksView() {
     )
   }
 
-  const formattedRecurringTasks: FormattedTask[] = recurringTasks.map(task => {
-    const formattedTask: FormattedRecurringTask = {
-      id: task.id,
-      user_id: task.user_id,
-      content: task.title,
-      completed: false,
-      completed_at: null,
-      time: task.time,
-      client_tag_id: task.client_id,
-      project_tag_id: task.project_id,
-      created_at: task.created_at,
-      title: task.title,
-      client_id: task.client_id,
-      project_id: task.project_id,
-      frequency: task.frequency,
-      week_day: task.week_day,
-      month_day: task.month_day,
-      type: "recurring",
-      task_client_tags: task.client_name ? {
-        task_id: task.id,
-        id: task.client_id || '',
-        name: task.client_name,
-        emoji: task.client_emoji || '',
-        color: task.client_emoji || '',
-        tag: `client:${task.client_name}`
-      } : null,
-      task_project_tags: task.project_name ? {
-        task_id: task.id,
-        id: task.project_id || '',
-        name: task.project_name,
-        client_name: task.client_name || '',
-        tag: `project:${task.client_name}/${task.project_name}`
-      } : null
-    }
-    return formattedTask
-  })
+  const formattedRecurringTasks: FormattedRecurringTask[] = recurringTasks.map(task => ({
+    ...task,
+    type: "recurring",
+    content: task.title,
+    completed: false,
+    completed_at: null,
+    client_tag_id: task.client_id,
+    project_tag_id: task.project_id,
+    task_client_tags: task.client_name ? {
+      task_id: task.id,
+      id: task.client_id || '',
+      name: task.client_name,
+      emoji: task.client_emoji || '',
+      color: task.client_emoji || '',
+      tag: `client:${task.client_name}`
+    } : null,
+    task_project_tags: task.project_name ? {
+      task_id: task.id,
+      id: task.project_id || '',
+      name: task.project_name,
+      client_name: task.client_name || '',
+      tag: `project:${task.client_name}/${task.project_name}`
+    } : null
+  }))
 
   const formattedOneOffTasks: FormattedTask[] = oneOffTasks.map(task => ({
     ...task,
