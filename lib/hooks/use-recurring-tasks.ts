@@ -6,20 +6,41 @@ import { Database } from '@/lib/database.types'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { toast } from 'sonner'
 
-export interface RecurringTask {
-  id: string
-  user_id: string
-  title: string
-  time: string | null
-  client_id: string | null
-  project_id: string | null
-  frequency: 'daily' | 'weekly' | 'monthly'
-  week_day: number | null
-  month_day: number | null
-  created_at: string
-  client_name?: string | null
-  client_emoji?: string | null
-  project_name?: string | null
+// Extend Database type to include the view
+interface DatabaseWithViews extends Database {
+  public: Database['public'] & {
+    Views: {
+      recurring_tasks_with_relations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          time: string | null
+          client_id: string | null
+          project_id: string | null
+          frequency: 'daily' | 'weekly' | 'monthly'
+          week_day: number | null
+          month_day: number | null
+          created_at: string
+          client_name: string | null
+          client_emoji: string | null
+          project_name: string | null
+        }
+      }
+    }
+  }
+}
+
+export type RecurringTask = DatabaseWithViews['public']['Views']['recurring_tasks_with_relations']['Row']
+
+export interface RecurringTaskUpdate {
+  title?: string
+  time?: string | null
+  client_id?: string | null
+  project_id?: string | null
+  frequency?: 'daily' | 'weekly' | 'monthly'
+  week_day?: number | null
+  month_day?: number | null
 }
 
 export function useRecurringTasks() {
@@ -134,22 +155,13 @@ export function useRecurringTasks() {
       throw error
     }
   }
-  
-  const updateTask = async (id: string, updates: {
-    title?: string
-    time?: string | null
-    client_id?: string | null
-    project_id?: string | null
-    frequency?: 'daily' | 'weekly' | 'monthly'
-    week_day?: number | null
-    month_day?: number | null
-  }) => {
+
+  const updateTask = async (id: string, updates: RecurringTaskUpdate) => {
     if (!user) {
       throw new Error('User not authenticated')
     }
-    
+
     try {
-      console.log("Starting updateTask with:", { id, updates });
       if (updates.title && !updates.title.trim()) {
         throw new Error('Task title cannot be empty')
       }
@@ -179,14 +191,14 @@ export function useRecurringTasks() {
         .eq('user_id', user.id)
 
       if (error) throw error
-     //if (error) console.error("Supabase update error:", error);
+
       // Fetch updated task with relations
       const { data: updatedTask, error: fetchError } = await supabase
         .from('recurring_tasks_with_relations')
         .select('*')
         .eq('id', id)
         .single()
-       
+
       if (fetchError) throw fetchError
 
       setTasks(prev => prev.map(task => 
